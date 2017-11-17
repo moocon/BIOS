@@ -397,7 +397,7 @@ void PCI_modify (int length, int offset, int k) {
     PCI_write (PCI_CONFIG_DATA_PORT, data_change);
     PCI_read_in_dword (bus, device, function);    
   }
-
+  
 }
 
 
