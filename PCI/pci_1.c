@@ -57,20 +57,20 @@ void PCI_scan (void) {
   i = 1;                                                   //must be initialized here
 
   for (bus = 0; bus <= 0x63; ++bus) {
-    for (device = 0; device <= 0x1F; ++device) {
-			for (function = 0; function <= 0x7; ++function) {
-				PCI_write (PCI_CONFIG_INDEX_PORT,PCI_ADDRESS);
-				data = PCI_read (PCI_CONFIG_DATA_PORT);
-				if ((WORD)data != 0xFFFF ) {
+	  for (device = 0; device <= 0x1F; ++device) {
+      for (function = 0; function <= 0x7; ++function) {
+        PCI_write (PCI_CONFIG_INDEX_PORT,PCI_ADDRESS);
+        data = PCI_read (PCI_CONFIG_DATA_PORT);
+        if ((WORD)data != 0xFFFF ) {
           i++;
-					a [i] = bus;                                     //a[] receive bus device function values for global use
-					b [i] = device;                                  
-					c [i] = function;
-					printf ("%02X    %02X       %02X         %X", bus, device, function, data);
-					printf ("\n");
-				}
-			}
-		}
+          a [i] = bus;                                     //a[] receive bus device function values for global use
+          b [i] = device;                                  
+          c [i] = function;
+          printf ("%02X    %02X       %02X         %X", bus, device, function, data);
+          printf ("\n");
+        }
+      }
+    }
 	}
 
   printf ("\nEsc: quit");
@@ -80,26 +80,26 @@ void PCI_scan (void) {
 
 /* PCI_write function */
 void PCI_write (int index,DWORD data) {
-	asm mov dx,index;
-	asm lea bx,data;
-	__emit__(
-	0x66,0x50,                                               // push EAX
-	0x66,0x8B,0x07,                                          // in EAX,DX
-	0x66,0xEF,                                               // mov [BX],EAX
-	0x66,0x58);                                              // pop EAX
+  asm mov dx,index;
+  asm lea bx,data;
+  __emit__(
+  0x66,0x50,                                               // push EAX
+  0x66,0x8B,0x07,                                          // in EAX,DX
+  0x66,0xEF,                                               // mov [BX],EAX
+  0x66,0x58);                                              // pop EAX
 }
 
 /* PCI_read function */
 DWORD PCI_read (int read) {
-	DWORD data;
-	asm mov dx,read;
-	asm lea bx,data;
-	__emit__(
-	0x66,0x50,                                               // push EAX
-	0x66,0xED,                                               // mov EAX,[BX]
-	0x66,0x89,0x07,                                          // out DX,EAX
-	0x66,0x58);                                              // pop EAX
-	return data;
+  DWORD data;
+  asm mov dx,read;
+  asm lea bx,data;
+  __emit__(
+  0x66,0x50,                                               // push EAX
+  0x66,0xED,                                               // mov EAX,[BX]
+  0x66,0x89,0x07,                                          // out DX,EAX
+  0x66,0x58);                                              // pop EAX
+  return data;
 }
 
 /* read PCI */
@@ -131,39 +131,39 @@ void PCI_read_in_byte (int bus, int device, int function) {
       printf ("\n");
       cprintf ("%X0 ", i);
     }
-	}
+  }
 
-	printf ("\n\nF1: BYTE  F2: WORD  F3: DWORD  ESC: RETURN ENTER: MODIFY");
+  printf ("\n\nF1: BYTE  F2: WORD  F3: DWORD  ESC: RETURN ENTER: MODIFY");
 }
 
 /* read PCI in word */
 void PCI_read_in_word (int bus, int device, int function) {
-	DWORD data;
-	WORD data_0, data_1;
-	int offset = 0;
-	int i = 0;
+  DWORD data;
+  WORD data_0, data_1;
+  int offset = 0;
+  int i = 0;
   textcolor (GREEN);
-	system ("cls");
-	printf ("******************************************\n");
-	printf ("***Bus: %02X   Device: %02X   Function: %02X****\n", bus,device,function);
-	printf ("******************************************\n");
-	cprintf ("   0100 0302 0504 0706 0908 0B0A 0D0C 0F0E");
+  system ("cls");
+  printf ("******************************************\n");
+  printf ("***Bus: %02X   Device: %02X   Function: %02X****\n", bus,device,function);
+  printf ("******************************************\n");
+  cprintf ("   0100 0302 0504 0706 0908 0B0A 0D0C 0F0E");
   printf ("\n");
   cprintf ("%X0 ", i);
 
-	for (offset = 0; offset <= 0x3F; offset++) {
-		PCI_write (PCI_CONFIG_INDEX_PORT,PCI_ADDRESS_OFFSET);
-		data = PCI_read (PCI_CONFIG_DATA_PORT);
-		data_0 = (WORD) (data);                                 //low 16 bit data
-		data_1 = (WORD) (data >> 16);                           //high 16 bit data
-		printf ("%04X %04X ", data_0, data_1);
-		if (offset < 63 && (offset+1) % 4 == 0) {
+  for (offset = 0; offset <= 0x3F; offset++) {
+    PCI_write (PCI_CONFIG_INDEX_PORT,PCI_ADDRESS_OFFSET);
+    data = PCI_read (PCI_CONFIG_DATA_PORT);
+    data_0 = (WORD) (data);                                 //low 16 bit data
+    data_1 = (WORD) (data >> 16);                           //high 16 bit data
+    printf ("%04X %04X ", data_0, data_1);
+    if (offset < 63 && (offset+1) % 4 == 0) {
       i = i + 1;
-			printf ("\n");
-			cprintf ("%X0 ", i);
+      printf ("\n");
+      cprintf ("%X0 ", i);
     }
-	}
-	printf ("\n\nF1: BYTE  F2: WORD  F3: DWORD  ESC: RETURN ENTER: MODIFY");
+  }
+  printf ("\n\nF1: BYTE  F2: WORD  F3: DWORD  ESC: RETURN ENTER: MODIFY");
 }
 
 /* read PCI in dword */
@@ -191,7 +191,7 @@ void PCI_read_in_dword (int bus, int device, int function) {
     }
   }
 
-	printf ("\n\nF1: BYTE  F2: WORD  F3: DWORD  ESC: RETURN ENTER: MODIFY");
+  printf ("\n\nF1: BYTE  F2: WORD  F3: DWORD  ESC: RETURN ENTER: MODIFY");
 }
 
 /* keyboard */
@@ -219,7 +219,6 @@ int PCI_scan_keyboard (void) {
         x = 1;
         y = 2;
         break;
-
     }
   }
 
@@ -305,7 +304,6 @@ int PCI_read_keyboard (int k) {    //k receive
   }
 
 }
-
 
 /* Modify PCI */
 void PCI_modify (int length, int offset, int k) {
