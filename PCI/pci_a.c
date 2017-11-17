@@ -323,11 +323,13 @@ void PCI_modify (int length, int offset, int k) {
   for (i = 1; (modify_input [i] = getch ()) != 13 && i <= length; i++) {   //ASCII 13 = enter       
     if (modify_input [i] >= 48 && modify_input [i] <=57) {
       modify_input [i] = modify_input [i] - 48;
+      printf ("%d", mofify_input [i];
       input_change = input_change + modify_input [i] * pow (16, (length - i));
       input_judgement ++;
     } 
     else if (modify_input [i] >= 65 && modify_input [i] <= 70) {
       modify_input [i] = modify_input [i] - 55; 
+      printf ("%d", modify_input [i];
       input_change = input_change + modify_input [i] * pow (16, (length - i));
       input_judgement ++;
     }
