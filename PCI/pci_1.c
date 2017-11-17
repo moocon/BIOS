@@ -57,7 +57,7 @@ void PCI_scan (void) {
   i = 1;                                                   //must be initialized here
 
   for (bus = 0; bus <= 0x63; ++bus) {
-	  for (device = 0; device <= 0x1F; ++device) {
+    for (device = 0; device <= 0x1F; ++device) {
       for (function = 0; function <= 0x7; ++function) {
         PCI_write (PCI_CONFIG_INDEX_PORT,PCI_ADDRESS);
         data = PCI_read (PCI_CONFIG_DATA_PORT);
@@ -71,7 +71,7 @@ void PCI_scan (void) {
         }
       }
     }
-	}
+  }
 
   printf ("\nEsc: quit");
   printf ("\nEnter: read device");
