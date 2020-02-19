@@ -1,68 +1,71 @@
-#include <Uefi.h>
+#include <Uefi.h> 
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Protocol/DiskIo.h>//Provide protocol name: gEfiDiskIoProtocolGuid
 //UefiMain
-VOID MemoryAllocateServiceMenu(VOID);
-CHAR16 MemoryAllocateServiceFunction(VOID);
+VOID FunctionSelectMenu(VOID);
+CHAR16 GetFunctionSelectResult(VOID);
 //GetUnicodeChar
 CHAR16 GetUnicodeChar(VOID);
-//AllocatePool
-EFI_STATUS AllocatePoolFunction(VOID);
-VOID MemoryTypeMenu(VOID);
-CHAR16 GetMemoryType(VOID);
-UINTN GetAllocatePoolSize(VOID);
-//AllocatePages
-EFI_STATUS AllocatePagesFunction(VOID);
-CHAR16 GetPagesType(VOID);
-VOID PagesTypeMenu(VOID);
-UINTN GetPages(VOID);
-//GetMemoryMapFunction
-EFI_STATUS GetMemoryMapFunction (VOID);
+//AllHandle
+EFI_STATUS AllHandle(VOID);
+EFI_STATUS ProtocolList(UINTN HandleAmount, EFI_HANDLE *HandleArray);
+//ProtocolGuidHandle
+EFI_STATUS ProtocolGuidHandle(VOID);
+EFI_GUID GetProtocolGuid(VOID);
+//ProtocolNameHandle
+EFI_STATUS ProtocolNameHandle(VOID);
+//HandleNumberHandle
+EFI_STATUS HandleNumberHandle(VOID);
+UINTN GetHandleNumber(VOID);
 
-
-EFI_STATUS EFIAPI UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
+EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
 {
-  EFI_STATUS  Status = 0;
-  CHAR16      AllocateServiceChoose;
+  EFI_STATUS   Status;
+  CHAR16       FunctionSelectResult;
   
-  MemoryAllocateServiceMenu();
-  AllocateServiceChoose = MemoryAllocateServiceFunction();
-  while(AllocateServiceChoose != 'q')
+  FunctionSelectMenu();
+  while((FunctionSelectResult = GetFunctionSelectResult()) != 5)
   {
-    if(AllocateServiceChoose == '1')
-      Status = AllocatePoolFunction();
-    else if(AllocateServiceChoose == '2')
-      Status = AllocatePagesFunction();
+    if(FunctionSelectResult == 1)
+      Status = AllHandle();
+    else if(FunctionSelectResult == 2)
+      Status = ProtocolGuidHandle();
+    else if(FunctionSelectResult == 3)
+      Status = ProtocolNameHandle();
+    else if(FunctionSelectResult == 4)
+      Status = HandleNumberHandle();
     else
-      Print(L"\n\nChoose error!!! Please choose again.");
-    MemoryAllocateServiceMenu();
-    AllocateServiceChoose = MemoryAllocateServiceFunction();
+      Print(L"\nError Select!!! Please Select again\n");
+    FunctionSelectMenu();
   }
-  
-  Status = GetMemoryMapFunction();
-  
+ 
   return EFI_SUCCESS;
 }
-//MemoryAllocateServiceMenu
-VOID MemoryAllocateServiceMenu(VOID)
+//VOID FunctionSelectMenu(VOID)
+VOID FunctionSelectMenu(VOID)
 {
-  Print(L"\n<<memory allocate service menu>>\n");
-  Print(L"1. AllocatePool()\n");
-  Print(L"2. AllocatePages()\n");
-  Print(L"Please choose a allocate service:");
-  Print(L"('q' to quit and check memory map): ");
+  Print(L"\n<<FunctionSelectMenu>>\n");
+  Print(L"1. Search all handles\n");
+  Print(L"2. Search specific handles by protocol GUID\n");
+  Print(L"3. Search specific handles by protocol name\n");
+  Print(L"4. Search specific handles by handle number\n");
+  Print(L"5. Quit program\n");
+  Print(L"Please select the function: ");
 }
-//MemoryAllocateServiceFunction
-CHAR16 MemoryAllocateServiceFunction(VOID)
-{
-  CHAR16   MemoryAllocateServiceChoose[3];
-  UINT8    i = 0;
-  while((MemoryAllocateServiceChoose[i] = GetUnicodeChar()) != 13)
+//CHAR16 GetFunctionSelectResult(VOID)
+CHAR16 GetFunctionSelectResult(VOID)
+{ 
+  INT8 i = 0;
+  CHAR16 FunctionSelectResult[3];
+  
+  while((FunctionSelectResult[i] = GetUnicodeChar()) != 13)
   {
-    Print(L"%c", MemoryAllocateServiceChoose[i]);
+    Print(L"%c", FunctionSelectResult[i]);
     i++;
   }
-  return MemoryAllocateServiceChoose[0];
+  FunctionSelectResult[0] = FunctionSelectResult[0] - '0';
+  return FunctionSelectResult[0];
 }
 //GetUnicodeChar
 CHAR16 GetUnicodeChar(VOID)
@@ -79,199 +82,197 @@ CHAR16 GetUnicodeChar(VOID)
 }
 
 
-//AllocatePoolFunction
-EFI_STATUS AllocatePoolFunction(VOID)
-{
-  EFI_STATUS        Status = 0;
-  VOID              *PoolAddress;
-  CHAR16            MemoryTypeChoose;
-  UINTN             AllocatePoolSize;
-  
-  MemoryTypeMenu();  
-  MemoryTypeChoose = GetMemoryType();
-  Print(L"\nHow many bytes do you want to allocate: ");
-  AllocatePoolSize = GetAllocatePoolSize();
-  Status = gBS -> AllocatePool(MemoryTypeChoose, AllocatePoolSize, &PoolAddress);
-  Print(L"\nAllocate %d Bytes at 0x%p\n", AllocatePoolSize, PoolAddress);
-  Print(L"***Free Memory Pool***\n");
-  Status = gBS -> FreePool(PoolAddress);
-  Print(L"Free %d Bytes at 0x%p\n",AllocatePoolSize, PoolAddress);
-
-  return Status; 
-}
-//MemoryTypeMenu
-VOID MemoryTypeMenu(VOID)
-{
-  Print(L"\n<<Memory type menu>>\n");
-  Print(L"0. EfiReservedMemoryType\n");
-  Print(L"1. EfiLoaderCode\n");
-  Print(L"2. EfiLoaderData\n");
-  Print(L"3. EfiBootServicesCode\n");
-  Print(L"4. EfiBootServicesData\n");
-  Print(L"5. EfiRuntimeServicesCode\n");
-  Print(L"6. EfiRuntimeServicesData\n");
-  Print(L"Please choose a memory type:");
-}
-//GetMemoryType
-CHAR16 GetMemoryType(VOID)
-{
-  CHAR16   MemoryTypeChoose[2];
-  UINT8    i = 0; 
-  
-  while((MemoryTypeChoose[i] = GetUnicodeChar()) != 13)
-  {
-    Print(L"%c", MemoryTypeChoose[i]);
-    i++;
-  }
-  
-  MemoryTypeChoose[0] = MemoryTypeChoose[0] - '0'; 
-  return MemoryTypeChoose[0];   
-}
-//GetAllocatePoolSize
-UINTN GetAllocatePoolSize(VOID)
-{
-  UINTN    AllocatePoolSize = 0;
-  CHAR16   Temp[8];
-  UINT8    i = 0;
-  
-  while((Temp[i] = GetUnicodeChar()) != 13)
-  { 
-    Print(L"%c", Temp[i]);
-    AllocatePoolSize = AllocatePoolSize*10 + Temp[i] - '0';
-    i++;
-  }
-  
-  return AllocatePoolSize;
-}
-
-
-/*AllocatePagesFunction*/
-EFI_STATUS AllocatePagesFunction(VOID)
+//AllHandle
+EFI_STATUS AllHandle(VOID)
 {
   EFI_STATUS   Status;
-  CHAR16       PagesTypeChoose;
-  CHAR16       MemoryTypeChoose;
-  UINTN        Pages;
-  EFI_PHYSICAL_ADDRESS   PagesAddress;
-
-  PagesTypeMenu();
-  PagesTypeChoose = GetPagesType();
-  MemoryTypeMenu();
-  MemoryTypeChoose = GetMemoryType();
-  Print(L"\nHow many pages do yo want to allocate: ");
-  Pages = GetPages();
-  Status = gBS -> AllocatePages(PagesTypeChoose, MemoryTypeChoose, Pages, &PagesAddress);
-  Print(L"\nAllocate %d Pages(%d Bytes) at 0x%p \n", Pages, Pages *4096, PagesAddress);
-  Print(L"***Free Pages***\n");
-  Status = gBS -> FreePages(PagesAddress, Pages);
-  Print(L"Free %d Pages(%d Bytes) at 0x%p\n", Pages, Pages*4096, PagesAddress);
+  //LocateHandleBuffer
+  UINTN        HandleAmount;
+  EFI_HANDLE   *HandleArray;
+  
+  Status = gBS -> LocateHandleBuffer(AllHandles, NULL, NULL, &HandleAmount, &HandleArray);
+  Status = ProtocolList(HandleAmount, HandleArray);
   
   return Status;
 }
-//PagesTypeMenu
-VOID PagesTypeMenu(VOID)
+//ProtocolList
+EFI_STATUS ProtocolList(UINTN HandleAmount, EFI_HANDLE *HandleArray)
 {
-  Print(L"\n<<AllocatePages type menu>>\n");
-  Print(L"1. AllocateAnyPages\n");
-  Print(L"2. AllocateMaxaddress\n");
-  Print(L"3. AllocateAddress\n");
-  Print(L"4. MaxAllocateType\n");
-  Print(L"Please choose a AllocatePages type: ");
-}
-//GetPagesType
-CHAR16 GetPagesType(VOID)
-{
-  CHAR16   PagesTypeChoose[3];
-  UINT8    i = 0;
+  UINTN         i = 0;
+  UINTN         j = 0;
+  UINTN         k = 0;
+  EFI_STATUS   Status = 0;
+  //ProtocolsPerHandle
+  EFI_GUID     **ProtocolArray;
+  UINTN        ProtocolAmount;
   
-  while((PagesTypeChoose[i] = GetUnicodeChar()) != 13)
+  for(i = 0; i < HandleAmount; i++)
   {
-    Print(L"%c", PagesTypeChoose[i]);
-    i++;
+    Print(L"\nHandle[%d] (address: 0x%p)\n", i, HandleArray[i]);
+    Status = gBS -> ProtocolsPerHandle(HandleArray[i], &ProtocolArray, &ProtocolAmount);
+    for(j = 0; j < ProtocolAmount; j++)
+    {
+      Print(L"Protocol[%d]: %08X-%04X-", j, ProtocolArray[j] -> Data1, ProtocolArray[j] -> Data2);
+      Print(L"%04X-", ProtocolArray[j] -> Data3);
+      for(k = 0; k < 8; k++)
+        Print(L"%02X",  ProtocolArray[j] -> Data4[k]);
+      Print(L"\n");
+    }
+  }
+  return Status;  
+}
+
+
+//ProtocolNameHandle
+EFI_STATUS ProtocolNameHandle(VOID)
+{
+  EFI_STATUS   Status;
+  //LocateHandleBuffer
+  UINTN        HandleAmount;
+  EFI_HANDLE   *HandleArray;
+  
+  Print(L"\nProtocolName: gEfiDiskIoProtocolGuid");
+  Status = gBS -> LocateHandleBuffer(ByProtocol, &gEfiDiskIoProtocolGuid, NULL, &HandleAmount, &HandleArray);
+  Status = ProtocolList(HandleAmount, HandleArray);
+    
+  return Status;
+}
+
+
+//ProtocolGuidHandle
+EFI_STATUS ProtocolGuidHandle(VOID)
+{
+  EFI_STATUS   Status;
+  //LocateHandleBuffer
+  EFI_GUID     ProtocolGuid;
+  UINTN        HandleAmount;
+  EFI_HANDLE   *HandleArray;
+  
+  ProtocolGuid = GetProtocolGuid();
+  Status = gBS -> LocateHandleBuffer(ByProtocol, &ProtocolGuid, NULL, &HandleAmount, &HandleArray);
+  Status = ProtocolList(HandleAmount, HandleArray);
+  
+  return Status;
+}
+//GetProtocolGuid
+EFI_GUID GetProtocolGuid(VOID)
+{
+  UINT8    Temp[33];
+  EFI_GUID  ProtocolGuid;  
+  UINT8    i = 0;
+  UINT8    j = 0;
+  
+  ProtocolGuid.Data1 = 0;
+  ProtocolGuid.Data2 = 0;
+  ProtocolGuid.Data3 = 0;
+  for(j = 0; j < 8; j++)
+    ProtocolGuid.Data4[j] = 0;
+  
+  Print(L"\nGUID: ");
+  while((Temp[i] = (UINT8)GetUnicodeChar()) != 13)
+  {
+    Print(L"%c", Temp[i]);
+    if(i == 7)
+      Print(L"-");
+    else if(i == 11)
+      Print(L"-");
+    else if(i == 15)
+      Print(L"-");
+    
+    if('0' <= Temp[i] && Temp[i] <= '9')
+      Temp[i] = Temp[i] - '0';
+    else if('A' <= Temp[i] && Temp[i] <= 'F')
+      Temp[i] = Temp[i] - 'A' + 10;
+    else if('a' <= Temp[i] && Temp[i] <= 'f')
+      Temp[i] = Temp[i] - 'a' + 10;
+    
+    if(0 <= i && i <= 7)
+      ProtocolGuid.Data1 = ProtocolGuid.Data1*16 + Temp[i];
+    else if(8 <= i && i <= 11)
+      ProtocolGuid.Data2 = ProtocolGuid.Data2*16 + Temp[i];
+    else if(12 <= i && i <= 15)
+      ProtocolGuid.Data3 = ProtocolGuid.Data3*16 + Temp[i];
+    else if(16 <= i && i <= 31)
+    {
+      if(16 <= i && i <= 17)
+        ProtocolGuid.Data4[0] = ProtocolGuid.Data4[0]*16 + Temp[i];
+      else if(18 <= i && i <= 19)
+        ProtocolGuid.Data4[1] = ProtocolGuid.Data4[1]*16 + Temp[i];
+      else if(20 <= i && i <= 21)
+        ProtocolGuid.Data4[2] = ProtocolGuid.Data4[2]*16 + Temp[i];
+      else if(22 <= i && i <= 23)
+        ProtocolGuid.Data4[3] = ProtocolGuid.Data4[3]*16 + Temp[i];
+      else if(24 <= i && i <= 25)
+        ProtocolGuid.Data4[4] = ProtocolGuid.Data4[4]*16 + Temp[i];
+      else if(26 <= i && i <= 27)
+        ProtocolGuid.Data4[5] = ProtocolGuid.Data4[5]*16 + Temp[i];
+      else if(28 <= i && i<= 29)
+        ProtocolGuid.Data4[6] = ProtocolGuid.Data4[6]*16 + Temp[i];
+      else if(30 <= i && i <= 31)
+        ProtocolGuid.Data4[7] = ProtocolGuid.Data4[7]*16 + Temp[i];      
+    }
+    
+    i++; 
   }
   
-  PagesTypeChoose[0] = PagesTypeChoose[0] - '0';
-  return PagesTypeChoose[0];
+  return ProtocolGuid;
 }
-//GetPages
-UINTN GetPages(VOID)
+
+
+//HandleNumberHandle
+EFI_STATUS HandleNumberHandle(VOID)
 {
-  UINTN    Pages = 0;
-  CHAR16   Temp[8];
+  EFI_STATUS   Status;
+  //LocateHandleBuffer
+  UINTN        HandleAmount;
+  EFI_HANDLE   *HandleArray;
+  UINTN        HandleNumber;
+  
+  //ProtocolsPerHandle
+  EFI_GUID     **ProtocolArray;
+  UINTN        ProtocolAmount;
+  UINT8        j = 0;
+  UINT8        k = 0;
+  
+  Status = gBS -> LocateHandleBuffer(AllHandles, NULL, NULL, &HandleAmount, &HandleArray);
+  Print(L"\nPlease Select the handle number you want to dump(0~%d): ", HandleAmount-1);
+  HandleNumber = GetHandleNumber();
+  Print(L"\nHandle[%d] (address: 0x%p)\n", HandleNumber, HandleArray[HandleNumber]);
+  Status = gBS -> ProtocolsPerHandle(HandleArray[HandleNumber], &ProtocolArray, &ProtocolAmount);
+  
+  for(j = 0; j < ProtocolAmount; j++)
+  {
+    Print(L"Protocol[%d]: %08X-%04X-", j, ProtocolArray[j] -> Data1, ProtocolArray[j] -> Data2);
+    Print(L"%04X-", ProtocolArray[j] -> Data3);
+    for(k = 0; k < 8; k++)
+      Print(L"%02X",  ProtocolArray[j] -> Data4[k]);
+    Print(L"\n");
+  }
+  
+  return Status;  
+}
+//GetHandleNumber
+UINTN GetHandleNumber(VOID)
+{
+  UINTN   HandleNumber = 0;
+  CHAR16  Temp[8];
   UINT8    i = 0;
   
   while((Temp[i] = GetUnicodeChar()) != 13)
-  { 
+  {
     Print(L"%c", Temp[i]);
-    Pages = Pages*10 + Temp[i] - '0';
+    HandleNumber = HandleNumber*10 + Temp[i] - '0';
     i++;
   }
-
-  return Pages;
+  return HandleNumber;
 }
 
 
-//GetMemoryMap
-EFI_STATUS    GetMemoryMapFunction(VOID)
-{
-  EFI_STATUS                  Status = 0;
-  UINTN                       MemoryMapSize = 0;
-  EFI_MEMORY_DESCRIPTOR       *MemoryMap = 0;
-  EFI_MEMORY_DESCRIPTOR       *MemoryMapTemp = 0;
-  UINTN                       MapKey = 0;
-  UINTN                       DescriptorSize = 0;
-  UINT32                      DescriptorVersion = 0;
-  UINTN                       i = 0;
-//  UINT64   MemoryType[20];
-  CHAR16   *MemoryTypeMenu[20] = {
-          L"EfiReservedMemoryType",
-          L"EfiLoaderCode",
-          L"EfiLoaderData",
-          L"EfiBootServicesCode",
-          L"EfiBootServicesData",
-          L"EfiRuntimeServicesCode",
-          L"EfiRuntimeServicesData",
-          L"EfiConventionalMemory",
-          L"EfiUnusableMemory",
-          L"EfiACPIReclaimMemory",
-          L"EfiACPIMemoryNVS",
-          L"EfiMemoryMappedIO",
-          L"EfiMemoryMappedIOPortSpace",
-          L"EfiPalCode",
-          L"EfiPersistentMemory",
-          L"EfiMaxMemoryType"
-          };
-          
-/*获得系统内存映射*/  
-  Status = gBS->GetMemoryMap(&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
-  Status = gBS -> AllocatePool(EfiBootServicesData, MemoryMapSize, (void**)&MemoryMap);
-  Status = gBS -> GetMemoryMap(&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
-  
-//  for (i = 0; i < 20; i++)
-//    MemoryType[i] = 0;
-  
-  /*打印系统内所有内存映射的信息*/  
-  Print(L"\nMemType                       Pages      PhyAddr   VirAddr\n");
-  for( i = 0; i < MemoryMapSize / DescriptorSize; i++)
-  {
-    MemoryMapTemp = (EFI_MEMORY_DESCRIPTOR*) ( ((CHAR8*)MemoryMap) + i * DescriptorSize);
-    Print(L"%02d-%-26s", MemoryMapTemp -> Type, MemoryTypeMenu[MemoryMapTemp -> Type]);
-    Print(L"%6d: ", MemoryMapTemp -> NumberOfPages);
-    Print(L"    0x%p--", MemoryMapTemp -> PhysicalStart);
-    Print(L"0x%p\n", MemoryMapTemp -> VirtualStart);
-//    MemoryType[MemoryMapTemp -> Type] = MemoryType[MemoryMapTemp -> Type] + MemoryMapTemp -> NumberOfPages;
-  }
-/*  for (i = 0; i < EfiMaxMemoryType; i++)
-  {
-    if (MemoryType[MemoryMapTemp -> Type] != 0)
-    {
-      Print(L"%02d%s: ", MemoryMapTemp -> Type, MemoryTypeMenu[MemoryMapTemp -> Type]);
-      Print(L"%6d Pages (%d)\n", MemoryType[MemoryMapTemp -> Type], MemoryType[MemoryMapTemp -> Type]*4096);
-    }
-  }*/
-  Status = gBS -> FreePool(MemoryMap);
-  return Status;
-}
+
+
+
+
+
 
 
 
