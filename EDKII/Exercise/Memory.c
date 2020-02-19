@@ -1,33 +1,26 @@
 #include <Uefi.h>
-#include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
-
+#include <Library/UefiBootServicesTableLib.h>
 //UefiMain
 VOID MemoryAllocateServiceMenu(VOID);
 CHAR16 MemoryAllocateServiceFunction(VOID);
-
-//AllocatePages
-EFI_STATUS AllocatePagesFunction (VOID);
-CHAR16 PagesTypeChooseFunction(VOID);
-VOID PagesTypeMenu(VOID);
-UINTN PagesFunction(VOID);
-
+//GetUnicodeChar
+CHAR16 GetUnicodeChar(VOID);
 //AllocatePool
 EFI_STATUS AllocatePoolFunction(VOID);
 VOID MemoryTypeMenu(VOID);
-CHAR16 MemoryTypeChooseFunction(VOID);
-UINTN AllocatePoolSizeFunction(VOID);
-
-//GetUnicodeChar
-CHAR16 GetUnicodeChar(VOID);
-
-//GetMemoryMapInformation
+CHAR16 GetMemoryType(VOID);
+UINTN GetAllocatePoolSize(VOID);
+//AllocatePages
+EFI_STATUS AllocatePagesFunction(VOID);
+CHAR16 GetPagesType(VOID);
+VOID PagesTypeMenu(VOID);
+UINTN GetPages(VOID);
+//GetMemoryMapFunction
 EFI_STATUS GetMemoryMapFunction (VOID);
 
 
-EFI_STATUS
-EFIAPI
-UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE  *SystemTable)
+EFI_STATUS EFIAPI UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
 {
   EFI_STATUS  Status = 0;
   CHAR16      AllocateServiceChoose;
@@ -37,26 +30,27 @@ UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE  *SystemTable)
   while(AllocateServiceChoose != 'q')
   {
     if(AllocateServiceChoose == '1')
-      AllocatePagesFunction();
+      Status = AllocatePoolFunction();
     else if(AllocateServiceChoose == '2')
-      AllocatePoolFunction();
+      Status = AllocatePagesFunction();
     else
-      Print(L"Choose error, Please choose again\n");
+      Print(L"\n\nChoose error!!! Please choose again.");
     MemoryAllocateServiceMenu();
     AllocateServiceChoose = MemoryAllocateServiceFunction();
   }
   
   Status = GetMemoryMapFunction();
-  return Status;
+  
+  return EFI_SUCCESS;
 }
 //MemoryAllocateServiceMenu
 VOID MemoryAllocateServiceMenu(VOID)
 {
-  Print(L"\n<<Choose a memory allocate service>>\n");
-  Print(L"1. AllocatePages()\n");
-  Print(L"2. AllocatePool()\n");
-  Print(L"Please choose a allocation service:");
-  Print(L"('q' to quit): ");
+  Print(L"\n<<memory allocate service menu>>\n");
+  Print(L"1. AllocatePool()\n");
+  Print(L"2. AllocatePages()\n");
+  Print(L"Please choose a allocate service:");
+  Print(L"('q' to quit and check memory map): ");
 }
 //MemoryAllocateServiceFunction
 CHAR16 MemoryAllocateServiceFunction(VOID)
@@ -70,192 +64,6 @@ CHAR16 MemoryAllocateServiceFunction(VOID)
   }
   return MemoryAllocateServiceChoose[0];
 }
-
-
-/*AllocatePagesFunction*/
-EFI_STATUS AllocatePagesFunction(VOID)
-{
-  EFI_STATUS   Status;
-  CHAR16       PagesTypeChoose;
-  CHAR16       MemoryTypeChoose;
-  UINTN        Pages;
-  EFI_PHYSICAL_ADDRESS   PagesAddress;
-
-  PagesTypeMenu();
-  PagesTypeChoose = PagesTypeChooseFunction();
-  MemoryTypeMenu();
-  MemoryTypeChoose = MemoryTypeChooseFunction();
-  Print(L"\nHow many pages do yo want to allocate: ");
-  Pages = PagesFunction();
-  Status = gBS -> AllocatePages(PagesTypeChoose, MemoryTypeChoose, Pages, &PagesAddress);
-  Print(L"\nAllocate %d Pages(%d Bytes) at 0x%p \n", Pages, Pages *4096, PagesAddress);
-  Print(L"\n***Free Pages***\n");
-  Status = gBS -> FreePages(PagesAddress, Pages);
-  Print(L"Free %d Pages(%d Bytes) at 0x%p\n", Pages, Pages*4096, PagesAddress);
-  
-  return Status;
-}
-//PagesTypeMenu
-VOID PagesTypeMenu(VOID)
-{
-  Print(L"\n<<Choose a allocation type>>\n");
-  Print(L"1. AllocateAnyPages\n");
-  Print(L"2. AllocateMaxaddress\n");
-  Print(L"3. AllocateAddress\n");
-  Print(L"4. MaxAllocateType\n");
-  Print(L"Please Choose a allocation type: ");
-}
-//PagesTypeChooseFunction
-CHAR16 PagesTypeChooseFunction(VOID)
-{
-  CHAR16   PagesTypeChoose[3];
-  UINT8    i = 0;
-  
-  
-  while((PagesTypeChoose[i] = GetUnicodeChar()) != 13)
-  {
-    Print(L"%c", PagesTypeChoose[i]);
-    i++;
-  }
-  
-  PagesTypeChoose[0] = PagesTypeChoose[0] - '0';
-  return PagesTypeChoose[0];
-}
-//PagesFunction
-UINTN PagesFunction(VOID)
-{
-  UINTN    Pages = 0;
-  CHAR16   Temp[8];
-  UINT8    i = 0;
-  UINT8    i_temp = 0;
-  UINT8    j = 0;
-  
-  while((Temp[j] = GetUnicodeChar()) != 13)
-  { 
-    Print(L"%c", Temp[j]);
-    Temp[j] = Temp[j] - '0';
-    j++;
-  }
-  
-  for(i = 0; i < j; i++)
-  {
-    for (i_temp = i; i_temp < (j - 1); i_temp++)
-      Temp[i] = Temp[i] * 10;
-    Pages =  Pages + Temp[i];   
-  }
-  return Pages;
-}
-
-
-
-/*AllocatePoolFunction*/
-EFI_STATUS AllocatePoolFunction(VOID)
-{
-  EFI_STATUS        Status = 0;
-  VOID              *PoolAddress;
-  
-  CHAR16            MemoryTypeChoose;
-  UINTN             AllocatePoolSize;
-  
-  MemoryTypeMenu();  
-  MemoryTypeChoose = MemoryTypeChooseFunction();
-  Print(L"\nHow many bytes do you want to allocate: ");
-  AllocatePoolSize = AllocatePoolSizeFunction();
-  Status = gBS -> AllocatePool(MemoryTypeChoose, AllocatePoolSize, &PoolAddress);
-  Print(L"\nAllocate %d Bytes at 0x%p\n", AllocatePoolSize, PoolAddress);
-  Print(L"\n***Free Memory Pool***\n");
-  Status = gBS -> FreePool(PoolAddress);
-  Print(L"Free %d Bytes at 0x%p\n",AllocatePoolSize, PoolAddress);
-   
-/*  switch(MemoryTypeChoose)
-  {
-    case '0': 
-      Status = gBS -> AllocatePool(EfiReservedMemoryType, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    case '1': 
-      Status = gBS -> AllocatePool(EfiLoaderCode, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    case '2': 
-      Status = gBS -> AllocatePool(EfiLoaderData, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    case '3': 
-      Status = gBS -> AllocatePool(EfiBootServicesCode, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    case '4':
-      Status = gBS -> AllocatePool(EfiBootServicesCode, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    case '5':
-      Status = gBS -> AllocatePool(EfiBootServicesCode, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    case '6':
-      Status = gBS -> AllocatePool(EfiBootServicesCode, AllocatePoolSize, &MemoryMapBufferHeadAddress);
-      Print(L"\nAllocatepool:[%d]Bytes at (%08x)\n",(UINTN)AllocatePoolSize, MemoryMapBufferHeadAddress);
-      break;
-    default: 
-      Print(L"Choose error, Please choose again\n");
-  }*/
-    
-  return Status; 
-}
-//MemoryTypeMenu
-VOID MemoryTypeMenu(VOID)
-{
-  Print(L"\n<<Optional memory type>>\n");
-  Print(L"0. EfiReservedMemoryType\n");
-  Print(L"1. EfiLoaderCode\n");
-  Print(L"2. EfiLoaderData\n");
-  Print(L"3. EfiBootServicesCode\n");
-  Print(L"4. EfiBootServicesData\n");
-  Print(L"5. EfiRuntimeServicesCode\n");
-  Print(L"6. EfiRuntimeServicesData\n");
-  Print(L"Please choose a memory type:");
-}
-//MemoryTypeChooseFunction
-CHAR16 MemoryTypeChooseFunction(VOID)
-{
-  CHAR16   MemoryTypeChoose[2];
-  UINT8    i = 0; 
-  
-  while((MemoryTypeChoose[i] = GetUnicodeChar()) != 13)
-  {
-    Print(L"%c", MemoryTypeChoose[i]);
-    i++;
-  }
-  MemoryTypeChoose[0] = MemoryTypeChoose[0] - '0'; 
-  return MemoryTypeChoose[0];   
-}
-//AllocatePoolSizeFunction
-UINTN AllocatePoolSizeFunction(VOID)
-{
-  UINTN    AllocatePoolSize = 0;
-  CHAR16   Temp[8];
-  UINT8    i = 0;
-  UINT8    i_temp = 0;
-  UINT8    j = 0;
-  
-  while((Temp[j] = GetUnicodeChar()) != 13)
-  { 
-    Print(L"%c", Temp[j]);
-    Temp[j] = Temp[j] - '0';
-    j++;
-  }
-  for(i = 0; i < j; i++)
-  {
-    for (i_temp = i; i_temp < (j - 1); i_temp++)
-      Temp[i] = Temp[i] * 10;
-    AllocatePoolSize =  AllocatePoolSize + Temp[i];   
-  }
-  return AllocatePoolSize;
-}
-
-
-
 //GetUnicodeChar
 CHAR16 GetUnicodeChar(VOID)
 {
@@ -271,55 +79,197 @@ CHAR16 GetUnicodeChar(VOID)
 }
 
 
+//AllocatePoolFunction
+EFI_STATUS AllocatePoolFunction(VOID)
+{
+  EFI_STATUS        Status = 0;
+  VOID              *PoolAddress;
+  CHAR16            MemoryTypeChoose;
+  UINTN             AllocatePoolSize;
+  
+  MemoryTypeMenu();  
+  MemoryTypeChoose = GetMemoryType();
+  Print(L"\nHow many bytes do you want to allocate: ");
+  AllocatePoolSize = GetAllocatePoolSize();
+  Status = gBS -> AllocatePool(MemoryTypeChoose, AllocatePoolSize, &PoolAddress);
+  Print(L"\nAllocate %d Bytes at 0x%p\n", AllocatePoolSize, PoolAddress);
+  Print(L"***Free Memory Pool***\n");
+  Status = gBS -> FreePool(PoolAddress);
+  Print(L"Free %d Bytes at 0x%p\n",AllocatePoolSize, PoolAddress);
+
+  return Status; 
+}
+//MemoryTypeMenu
+VOID MemoryTypeMenu(VOID)
+{
+  Print(L"\n<<Memory type menu>>\n");
+  Print(L"0. EfiReservedMemoryType\n");
+  Print(L"1. EfiLoaderCode\n");
+  Print(L"2. EfiLoaderData\n");
+  Print(L"3. EfiBootServicesCode\n");
+  Print(L"4. EfiBootServicesData\n");
+  Print(L"5. EfiRuntimeServicesCode\n");
+  Print(L"6. EfiRuntimeServicesData\n");
+  Print(L"Please choose a memory type:");
+}
+//GetMemoryType
+CHAR16 GetMemoryType(VOID)
+{
+  CHAR16   MemoryTypeChoose[2];
+  UINT8    i = 0; 
+  
+  while((MemoryTypeChoose[i] = GetUnicodeChar()) != 13)
+  {
+    Print(L"%c", MemoryTypeChoose[i]);
+    i++;
+  }
+  
+  MemoryTypeChoose[0] = MemoryTypeChoose[0] - '0'; 
+  return MemoryTypeChoose[0];   
+}
+//GetAllocatePoolSize
+UINTN GetAllocatePoolSize(VOID)
+{
+  UINTN    AllocatePoolSize = 0;
+  CHAR16   Temp[8];
+  UINT8    i = 0;
+  
+  while((Temp[i] = GetUnicodeChar()) != 13)
+  { 
+    Print(L"%c", Temp[i]);
+    AllocatePoolSize = AllocatePoolSize*10 + Temp[i] - '0';
+    i++;
+  }
+  
+  return AllocatePoolSize;
+}
 
 
+/*AllocatePagesFunction*/
+EFI_STATUS AllocatePagesFunction(VOID)
+{
+  EFI_STATUS   Status;
+  CHAR16       PagesTypeChoose;
+  CHAR16       MemoryTypeChoose;
+  UINTN        Pages;
+  EFI_PHYSICAL_ADDRESS   PagesAddress;
+
+  PagesTypeMenu();
+  PagesTypeChoose = GetPagesType();
+  MemoryTypeMenu();
+  MemoryTypeChoose = GetMemoryType();
+  Print(L"\nHow many pages do yo want to allocate: ");
+  Pages = GetPages();
+  Status = gBS -> AllocatePages(PagesTypeChoose, MemoryTypeChoose, Pages, &PagesAddress);
+  Print(L"\nAllocate %d Pages(%d Bytes) at 0x%p \n", Pages, Pages *4096, PagesAddress);
+  Print(L"***Free Pages***\n");
+  Status = gBS -> FreePages(PagesAddress, Pages);
+  Print(L"Free %d Pages(%d Bytes) at 0x%p\n", Pages, Pages*4096, PagesAddress);
+  
+  return Status;
+}
+//PagesTypeMenu
+VOID PagesTypeMenu(VOID)
+{
+  Print(L"\n<<AllocatePages type menu>>\n");
+  Print(L"1. AllocateAnyPages\n");
+  Print(L"2. AllocateMaxaddress\n");
+  Print(L"3. AllocateAddress\n");
+  Print(L"4. MaxAllocateType\n");
+  Print(L"Please choose a AllocatePages type: ");
+}
+//GetPagesType
+CHAR16 GetPagesType(VOID)
+{
+  CHAR16   PagesTypeChoose[3];
+  UINT8    i = 0;
+  
+  while((PagesTypeChoose[i] = GetUnicodeChar()) != 13)
+  {
+    Print(L"%c", PagesTypeChoose[i]);
+    i++;
+  }
+  
+  PagesTypeChoose[0] = PagesTypeChoose[0] - '0';
+  return PagesTypeChoose[0];
+}
+//GetPages
+UINTN GetPages(VOID)
+{
+  UINTN    Pages = 0;
+  CHAR16   Temp[8];
+  UINT8    i = 0;
+  
+  while((Temp[i] = GetUnicodeChar()) != 13)
+  { 
+    Print(L"%c", Temp[i]);
+    Pages = Pages*10 + Temp[i] - '0';
+    i++;
+  }
+
+  return Pages;
+}
 
 
-//GetMemoryMapFunction
+//GetMemoryMap
 EFI_STATUS    GetMemoryMapFunction(VOID)
 {
   EFI_STATUS                  Status = 0;
-  UINTN                       MemoryMapBufferSize = 0;
-  EFI_MEMORY_DESCRIPTOR       *MemoryMapBufferHeadAddress = 0;
-  EFI_MEMORY_DESCRIPTOR       *MemoryMapBufferHeadAddressTemp = 0;
-  UINTN                       MemoryMapKey = 0;
-  UINTN                       EfiMemoryDescriptorSize =0;
-  UINT32                      EfiDescriptorVersion = 0; 
-  UINTN                       i;
-
-/*查询目前系统内存映射的信息需要独大的缓冲区来存储
-  MemoryMapSize：IN：？ OUT：先准备足够的缓冲空间（MemoryMapBufferSize），用来存放系统内所有内存映射的信息。这里做OUT。
-  MemoryMapHeadAddress：IN：从allocatepool()那里取得缓冲区的首地址，并将系统内所有内存映射的信息存储于此。OUT：可打印输出缓冲区的内容（即是系统内存映射的信息）
-  MemoryMapKey：获取当前内存映射的"key"，是一个整数。这个"Key"是什么？
-  EfiMemoryDescriptorSize：获取EFI_MEMORY_DESCRIPTOR结构体的大小（即“每个内存映射”，占缓冲区多大），值会比sizeof(EFI_MEMORY_DESCRIPTOR)大*/
-  Print(L"***Get required Buffer size(MemoryMapBufferSize)***\n");
-  Status = gBS -> GetMemoryMap(&MemoryMapBufferSize, MemoryMapBufferHeadAddress, &MemoryMapKey, &EfiMemoryDescriptorSize, &EfiDescriptorVersion);
-  Print(L"1. MemoryMapBufferSize = %p\n", MemoryMapBufferSize);
-  Print(L"MemoryMapBufferHeadAddress =  %p\n", MemoryMapBufferHeadAddress);
-  Print(L"MemoryMapKey = %p\n", MemoryMapKey);
-  Print(L"EfiMemoryDescriptorSize = %p\n", EfiMemoryDescriptorSize);
-  Print(L"sizeof(EFI_MEMORY_DESCRIPTOR) = %p\n", sizeof(EFI_MEMORY_DESCRIPTOR));
-  Print(L"GetMemoryMap_ReturnStatus = %p\n", Status);
-  Print(L"EFI_BUFFER_TOO_SMALL = %p\n\n", EFI_BUFFER_TOO_SMALL);
-
-/*分配缓冲区给系统内所有的内存映射*/  
-  Status = gBS -> AllocatePool(EfiBootServicesData, MemoryMapBufferSize, &MemoryMapBufferHeadAddress);
+  UINTN                       MemoryMapSize = 0;
+  EFI_MEMORY_DESCRIPTOR       *MemoryMap = 0;
+  EFI_MEMORY_DESCRIPTOR       *MemoryMapTemp = 0;
+  UINTN                       MapKey = 0;
+  UINTN                       DescriptorSize = 0;
+  UINT32                      DescriptorVersion = 0;
+  UINTN                       i = 0;
+//  UINT64   MemoryType[20];
+  CHAR16   *MemoryTypeMenu[20] = {
+          L"EfiReservedMemoryType",
+          L"EfiLoaderCode",
+          L"EfiLoaderData",
+          L"EfiBootServicesCode",
+          L"EfiBootServicesData",
+          L"EfiRuntimeServicesCode",
+          L"EfiRuntimeServicesData",
+          L"EfiConventionalMemory",
+          L"EfiUnusableMemory",
+          L"EfiACPIReclaimMemory",
+          L"EfiACPIMemoryNVS",
+          L"EfiMemoryMappedIO",
+          L"EfiMemoryMappedIOPortSpace",
+          L"EfiPalCode",
+          L"EfiPersistentMemory",
+          L"EfiMaxMemoryType"
+          };
+          
+/*获得系统内存映射*/  
+  Status = gBS->GetMemoryMap(&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
+  Status = gBS -> AllocatePool(EfiBootServicesData, MemoryMapSize, (void**)&MemoryMap);
+  Status = gBS -> GetMemoryMap(&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
   
-/*读取系统内所有内存映射的信息*/  
-  Status = gBS -> GetMemoryMap(&MemoryMapBufferSize, MemoryMapBufferHeadAddress, &MemoryMapKey, &EfiMemoryDescriptorSize, &EfiDescriptorVersion);
+//  for (i = 0; i < 20; i++)
+//    MemoryType[i] = 0;
   
-/*打印系统内所有内存映射的信息*/  
-  Print(L"   Type     Pages      PhyAddr   VirAddr\n");
-  for( i = 0; i < (MemoryMapBufferSize / EfiMemoryDescriptorSize); i++)
+  /*打印系统内所有内存映射的信息*/  
+  Print(L"\nMemType                       Pages      PhyAddr   VirAddr\n");
+  for( i = 0; i < MemoryMapSize / DescriptorSize; i++)
   {
-    MemoryMapBufferHeadAddressTemp = MemoryMapBufferHeadAddress;
-    MemoryMapBufferHeadAddressTemp = MemoryMapBufferHeadAddressTemp + i * EfiMemoryDescriptorSize;
-    Print(L"%02d:", i);
-    Print(L"%08p %08p:", MemoryMapBufferHeadAddressTemp -> Type, MemoryMapBufferHeadAddressTemp -> NumberOfPages);
-    Print(L"  %08p", MemoryMapBufferHeadAddressTemp -> PhysicalStart);
-    Print(L"  %08p\n", MemoryMapBufferHeadAddressTemp -> VirtualStart);
+    MemoryMapTemp = (EFI_MEMORY_DESCRIPTOR*) ( ((CHAR8*)MemoryMap) + i * DescriptorSize);
+    Print(L"%02d-%-26s", MemoryMapTemp -> Type, MemoryTypeMenu[MemoryMapTemp -> Type]);
+    Print(L"%6d: ", MemoryMapTemp -> NumberOfPages);
+    Print(L"    0x%p--", MemoryMapTemp -> PhysicalStart);
+    Print(L"0x%p\n", MemoryMapTemp -> VirtualStart);
+//    MemoryType[MemoryMapTemp -> Type] = MemoryType[MemoryMapTemp -> Type] + MemoryMapTemp -> NumberOfPages;
   }
-  Status = gBS -> FreePool(MemoryMapBufferHeadAddress);
+/*  for (i = 0; i < EfiMaxMemoryType; i++)
+  {
+    if (MemoryType[MemoryMapTemp -> Type] != 0)
+    {
+      Print(L"%02d%s: ", MemoryMapTemp -> Type, MemoryTypeMenu[MemoryMapTemp -> Type]);
+      Print(L"%6d Pages (%d)\n", MemoryType[MemoryMapTemp -> Type], MemoryType[MemoryMapTemp -> Type]*4096);
+    }
+  }*/
+  Status = gBS -> FreePool(MemoryMap);
   return Status;
 }
 
